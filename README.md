@@ -2,9 +2,7 @@
 
 ```
 git clone https://github.com/SebasGarcia08/face-extractor
-cd face-extractor
-pip install .
-cd ..
+pip install face-extractor
 ```
 
 # Usage
