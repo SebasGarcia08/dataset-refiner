@@ -139,7 +139,7 @@ if __name__ == '__main__':
                         action="store_true", 
                         dest="duplicate_img_of_faces",
                         default=False, 
-                        help="Whether to save the original images of the extracted faces also. Only valid if -crop --crop-faces is pass as argument")
+                        help="Whether to save the original images of the extracted faces also. Only valid if -crop --crop-faces is passed as argument")
     
     kwargs = vars(parser.parse_args())
     logging.info("Preparing model...")

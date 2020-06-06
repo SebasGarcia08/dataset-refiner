@@ -28,7 +28,7 @@ optional arguments:
                         from the path specified in -indir --input-base-dir
   -duplicate, --duplicate-faces
                         Whether to save the original images of the extracted
-                        faces also. Only valid if -crop --crop-faces is pass
+                        faces also. Only valid if -crop --crop-faces is passed
                         as argument
 ```
 
