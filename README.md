@@ -1,8 +1,8 @@
 #Installation
 
 ```
-git clone https://github.com/SebasGarcia08/dataset-refiner
-cd dataset-refiner
+git clone https://github.com/SebasGarcia08/face-extractor
+cd face-extractor
 pip install .
 ```
 
