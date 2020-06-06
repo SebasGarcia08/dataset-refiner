@@ -45,6 +45,9 @@ def main(args):
                     else:
                         out = os.path.sep.join([args["OUTPUT_PATH"], partialPath])                                            
                     if args["crop_faces"]:
+                        if len(bbox) > 0 and args["duplicate_img_of_faces"]:
+                            cv2.imwrite(out, img)
+                                
                         for i, box in enumerate(bbox): 
                             out = out.replace(".jpg","")
                             out += f"{str(i+1)}.jpg"
@@ -130,8 +133,13 @@ if __name__ == '__main__':
                         action='store_true',
                         dest="save_in_same_output_folder",
                         default=False,
-                        help="Wheter to save all images in dirctory specified in -out --output-path and not \
-                              imitate directory structure from the path specified in -indir --input-base-dir\n")
+                        help="Whether to save all images in dirctory specified in -out --output-path and not imitate directory structure from the path specified in -indir --input-base-dir\n")
+
+    parser.add_argument("-duplicate", "--duplicate-faces",
+                        action="store_true", 
+                        dest="duplicate_img_of_faces",
+                        default=False, 
+                        help="Whether to save the original images of the extracted faces also. Only valid if -crop --crop-faces is pass as argument")
     
     kwargs = vars(parser.parse_args())
     logging.info("Preparing model...")
