@@ -40,8 +40,7 @@ optional arguments:
 * For saving images and its faces:
 
 ```
-python face-extractor/cleaner.py --input-path <input_path> \ 
-                                 --output-path <output_path> \
+python face-extractor/cleaner.py --input-path <input_path> --output-path <output_path> \
                                  --crop-faces --duplicate-img-faces
 ```
 
