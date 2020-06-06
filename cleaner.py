@@ -36,47 +36,49 @@ def main(args):
                 for filename in filenames:
                     partialPath = os.path.sep.join([ dirpath[ len(args["INPUT_BASE_DIR"]): ], filename ])
                     src = os.path.sep.join([args["INPUT_BASE_DIR"], partialPath])
-                    img = cv2.imread(src)
-                    img = cv2.resize(img, (255, 255))
-                    bbox, _ = model.detect(img, threshold=0.5, scale=1.0)
-                    
-                    if args["save_in_same_output_folder"]:
-                        out = os.path.sep.join([args["OUTPUT_PATH"], filename])
-                    else:
-                        out = os.path.sep.join([args["OUTPUT_PATH"], partialPath])                                            
-                    if args["crop_faces"]:
-                        if len(bbox) > 0 and args["duplicate_img_of_faces"]:
-                            cv2.imwrite(out, img)
-                                
-                        for i, box in enumerate(bbox): 
-                            out = out.replace(".jpg","")
-                            out += f"{str(i+1)}.jpg"
-                            try:
-                                x,y,w,h,_ = list(map(int, box))
-                                imgCrop = img[y:y+h,x:x+w]
+                    try:                        
+                        img = cv2.imread(src)
+                        img = cv2.resize(img, (255, 255))
+                        bbox, _ = model.detect(img, threshold=0.5, scale=1.0)
+                        
+                        if args["save_in_same_output_folder"]:
+                            out = os.path.sep.join([args["OUTPUT_PATH"], filename])
+                        else:
+                            out = os.path.sep.join([args["OUTPUT_PATH"], partialPath])                                            
+                        if args["crop_faces"]:
+                            if len(bbox) > 0 and args["duplicate_img_of_faces"]:
+                                cv2.imwrite(out, img)
+                                    
+                            for i, box in enumerate(bbox): 
+                                out = out.replace(".jpg","")
+                                out += f"{str(i+1)}.jpg"
                                 try:
-                                    imgCrop = cv2.resize(imgCrop, (255,255))
-                                    cv2.imwrite(out, imgCrop)
-                                    num_faces_detected += 1   
-                                except:
+                                    x,y,w,h,_ = list(map(int, box))
+                                    imgCrop = img[y:y+h,x:x+w]
                                     try:
+                                        imgCrop = cv2.resize(imgCrop, (255,255))
                                         cv2.imwrite(out, imgCrop)
                                         num_faces_detected += 1   
                                     except:
-                                        pass
-                            except Exception as e:
-                                # logging.error(traceback.format_exc()) 
-                                pbar.write(str(e))
-                    else:
-                        if len(bbox) > 0:
-                            cv2.imwrite(out, img)
-                            num_images_filtered += 1
-                    if args["crop_faces"]:
-                        pbar.write(f"Detected faces: {len(bbox)} - Total: {num_faces_detected} - Percentage of faces over images: / {(num_faces_detected/num_imgs)*100}%")
-                    else:
-                        pbar.write(f"Images filtered: {num_images_filtered} - Percemtage of images saved: {(num_images_filtered/num_imgs)*100}%")
-                    pbar.update(1)
-
+                                        try:
+                                            cv2.imwrite(out, imgCrop)
+                                            num_faces_detected += 1   
+                                        except:
+                                            pass
+                                except Exception as e:
+                                    # logging.error(traceback.format_exc()) 
+                                    pbar.write(str(e))
+                        else:
+                            if len(bbox) > 0:
+                                cv2.imwrite(out, img)
+                                num_images_filtered += 1
+                        if args["crop_faces"]:
+                            pbar.write(f"Detected faces: {len(bbox)} - Total: {num_faces_detected} - Percentage of faces over images: / {(num_faces_detected/num_imgs)*100}%")
+                        else:
+                            pbar.write(f"Images filtered: {num_images_filtered} - Percemtage of images saved: {(num_images_filtered/num_imgs)*100}%")
+                        pbar.update(1)
+                    except Exception as e:  
+                        pbar.write(str(e))
         else:
             raise FileNotFoundError("Path does not exists")
         

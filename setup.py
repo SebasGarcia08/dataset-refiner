@@ -6,8 +6,7 @@ setup(
     author="Sebastián García Acosta",
     description = "Code written in order to make Nando to be a professional data refiner",
     packages = [],
-    install_requires=[
-      "mxnet == 1.5.0",
+      install_requires=[
       "insightface",
       "numpy",
       "opencv-python",
