@@ -7,7 +7,7 @@ setup(
     description = "Code written in order to make Nando to be a professional data refiner",
     packages = [],
     install_requires=[
-      "mxnet",
+      "mxnet == 1.5.0",
       "insightface",
       "numpy",
       "opencv-python",
