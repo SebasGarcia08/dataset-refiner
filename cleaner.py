@@ -30,7 +30,7 @@ def main(args):
                     num_imgs += 1
             
             pbar = tqdm(total=num_imgs, desc="Progress", unit="Images")
-            pbar.write("{num_imgs} images found")
+            pbar.write(f"{num_imgs} images found")
             
             for dirpath, _, filenames in os.walk(args["INPUT_BASE_DIR"]):
                 for filename in filenames:
