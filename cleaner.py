@@ -111,7 +111,7 @@ if __name__ == '__main__':
         description="Script for detecting faces in a given folder and its subdirectories"
     )
     
-    parser.add_argument("-indir", "--input-base-dir", 
+    parser.add_argument("-in", "--input-path", 
                         type=str,
                         required=True,
                         dest="INPUT_BASE_DIR", 
@@ -135,7 +135,7 @@ if __name__ == '__main__':
                         default=False,
                         help="Whether to save all images in dirctory specified in -out --output-path and not imitate directory structure from the path specified in -indir --input-base-dir\n")
 
-    parser.add_argument("-duplicate", "--duplicate-faces",
+    parser.add_argument("-duplicate", "--duplicate-img-faces",
                         action="store_true", 
                         dest="duplicate_img_of_faces",
                         default=False, 
