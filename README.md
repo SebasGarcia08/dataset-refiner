@@ -1,4 +1,4 @@
-#Installation
+# Installation
 
 ```
 git clone https://github.com/SebasGarcia08/face-extractor
