@@ -39,7 +39,7 @@ optional arguments:
 * For saving images and its faces:
 
 ```
-python cleaner.py -indir <input_path> -out <output_path> -crop -duplicate
+python face-extractor/cleaner.py -indir <input_path> -out <output_path> -crop -duplicate
 ```
 
 ## Running with a Anaconda Environment and in linux
