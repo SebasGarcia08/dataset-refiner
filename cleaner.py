@@ -11,7 +11,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
-from refiner.FaceFilterer import FaceFilterer
 import multiprocessing
 from multiprocessing import Pool
 from p_tqdm import p_map
