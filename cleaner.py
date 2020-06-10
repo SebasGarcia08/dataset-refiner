@@ -11,6 +11,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
+from refiner.FaceFilterer import FaceFilterer
+import multiprocessing
+from multiprocessing import Pool
+from p_tqdm import p_map
+import sys
 
 def main(args):
     logging.info(' Reading files in {}'.format(args["INPUT_BASE_DIR"]))
@@ -58,51 +63,72 @@ def main(args):
                                 else:
                                     cv2.imwrite(out, img)
                                 
-                            if args["crop_faces"] or args["keep_only_imgs_with_masked_faces"]:
-                                current_num_faces_detected = 0                                                                
+                            elif args["crop_faces"] or args["keep_only_imgs_with_masked_faces"]:
                                 
-                                for i, box in enumerate(bbox): 
-                                    out = out.replace(".jpg","")
-                                    out += f"face_No{str(i+1)}.jpg"
+                                current_num_faces_detected = 0                                                                
+                                faces = []
+                                croppedImages = []
+                                
+                                for box in bbox: 
                                     try:
-                                        x,y,w,h,_ = list(map(int, box))
-                                        imgCrop = img[y:y+h,x:x+w]
-                                        
-                                        saveImg = True
                                         if args["keep_only_imgs_with_masked_faces"]:
+                                            x,y,w,h,_ = list(map(int, box))
+                                            imgCrop = img[y:y+h,x:x+w]
+                                            croppedImages.append(imgCrop)
                                             face = cv2.cvtColor(imgCrop, cv2.COLOR_BGR2RGB)
                                             face = cv2.resize(face, (224, 224))
                                             face = img_to_array(face)
                                             face = preprocess_input(face)
                                             face = np.expand_dims(face, axis=0)
-                                            (pMask, pNotMask) = np.squeeze(maskNet.predict(face))    
-                                            saveImg = pMask > .6 and pNotMask < .5
-                                        
-                                        if saveImg and args["crop_faces"]:
-                                            try:
-                                                imgCrop = cv2.resize(imgCrop, (255,255)) #this resizing could rise exception
-                                                cv2.imwrite(out, imgCrop)
-                                                num_faces_detected += 1
-                                                current_num_faces_detected += 1   
-                                            except:
-                                                try:
-                                                    cv2.imwrite(out, imgCrop) # if so, then save images as is, iwithout resizing
-                                                    num_faces_detected += 1   
-                                                    current_num_faces_detected += 1   
-                                                except:
-                                                    pass
+                                            faces.append(face)
                                     except Exception as e:
                                         # logging.error(traceback.format_exc()) 
-                                        pbar.write(traceback.format_exc())
+                                        pbar.write(traceback.format_exc())        
                                 
-                                if args["duplicate_img_of_faces"] and len(bbox) == 1 and saveImg: 
-                                    if args["move_images"]:
-                                        shutil.move(src, out)
-                                    else:
-                                        cv2.imwrite(out, img)
+                                saveImg = True
+                                if len(faces) > 0:
+                                    preds = maskNet.predict(faces)
+                                    for i, (imgCrop, pred) in enumerate(zip(croppedImages, preds)):
+                                        out = out.replace(".jpg","")
+                                        out += f"face_No{str(i+1)}.jpg"
+                                        saveCroppedImg = True                                        
+                                        if args["crop_faces"]:                                            
+                                            if args["keep_only_imgs_with_masked_faces"]:
+                                                pMask, pNotMask = np.squeeze(pred)
+                                                saveCroppedImg = pMask > .3
+
+                                            if saveCroppedImg:
+                                                try:
+                                                    imgCrop = cv2.resize(imgCrop, (224,224)) #this resizing could rise exception
+                                                    cv2.imwrite(out, imgCrop)
+                                                    num_faces_detected += 1
+                                                    current_num_faces_detected += 1   
+                                                except:
+                                                    try:
+                                                        cv2.imwrite(out, imgCrop) # if so, then save images as is, iwithout resizing
+                                                        num_faces_detected += 1   
+                                                        current_num_faces_detected += 1   
+                                                    except Exception as e:
+                                                        pbar.write(str(e))
+                                            else:
+                                                saveImg = False
+                                        
+                                    if args["duplicate_img_of_faces"]:
+                                        if args["keep_only_imgs_with_masked_faces"]:
+                                            if len(faces) == 1 and saveImg: 
+                                                if args["move_images"]:
+                                                    shutil.move(src, out)
+                                                else:
+                                                    cv2.imwrite(out, img)
+                                        else:
+                                            if args["move_images"]:
+                                                    shutil.move(src, out)
+                                            else:
+                                                cv2.imwrite(out, img)                                                                                        
                             
                             if args["crop_faces"]:
-                                msg = f"Detected faces: {current_num_faces_detected} - Total: {num_faces_detected} - Percentage of faces over images: {(num_faces_detected/(img_number+1))*100}%"
+                                s = " masked" if args["keep_only_imgs_with_masked_faces"] else " "
+                                msg = f"Detected{s} faces: {current_num_faces_detected} - Total: {num_faces_detected} - Percentage of faces over images: {(num_faces_detected/(img_number+1))*100}%"
                                 pbar.write(msg)
                             else:
                                 pbar.write(f"Filtered images: {num_images_filtered} - Percemtage of saved images: {(num_images_filtered/img_number)*100}%")
@@ -125,7 +151,7 @@ def yieldPaths(input_path, output_path, flat=False):
             else:   
                 out = os.path.sep.join([output_path, partialPath])      
             yield (src, out)
-    
+
 def copyDirectoryStructure(base_path, output_path):
     if os.path.exists(base_path):
         res = "yes"
@@ -148,6 +174,73 @@ def copyDirectoryStructure(base_path, output_path):
     else:
         logging.error("File does not exists")
 
+def copyFile(src, dst, buffer_size=10485760, perserveFileDate=True):
+    '''
+    From: https://blogs.blumetech.com/blumetechs-tech-blog/2011/05/faster-python-file-copy.html
+    Copies a file to a new location. Much faster performance than Apache Commons due to use of larger buffer
+    @param src:    Source File
+    @param dst:    Destination File (not file path)
+    @param buffer_size:    Buffer size to use during copy
+    @param perserveFileDate:    Preserve the original file date
+    '''
+    #    Check to make sure destination directory exists. If it doesn't create the directory
+    dstParent, dstFileName = os.path.split(dst)
+    if(not(os.path.exists(dstParent))):
+        os.makedirs(dstParent)
+
+    #    Optimize the buffer for small files
+    buffer_size = min(buffer_size,os.path.getsize(src))
+    if(buffer_size == 0):
+        buffer_size = 1024
+
+    if shutil._samefile(src, dst):
+        raise shutil.Error("`%s` and `%s` are the same file" % (src, dst))
+    for fn in [src, dst]:
+        try:
+            st = os.stat(fn)
+        except OSError:
+            # File most likely does not exist
+            pass
+        else:
+            # XXX What about other special files? (sockets, devices...)
+            if shutil.stat.S_ISFIFO(st.st_mode):
+                raise shutil.SpecialFileError("`%s` is a named pipe" % fn)
+    with open(src, 'rb') as fsrc:
+        with open(dst, 'wb') as fdst:
+            shutil.copyfileobj(fsrc, fdst, buffer_size)
+
+    if(perserveFileDate):
+        shutil.copystat(src, dst)
+
+def countImages(input_path):
+    total_images = 0
+    for _, _, filenames in os.walk(input_path):
+        total_images += len(filenames)  
+    return total_images
+
+def write(msg):
+    sys.stderr.write('\r{}'.format(msg))
+
+def run(src, out):
+    try:
+        img = cv2.imread(src)
+        img = cv2.resize(img, (255, 255))
+        bbox, _ = self.model.detect(img, threshold=0.5, scale=1.0)
+        
+        if len(bbox) > 0:
+            if move_files:
+                shutil.move(src, out)
+            else:
+                self.copyFile(src, out)
+            num_filtered_images += 1
+            ratio = round((self.num_filtered_images / (img_number + 1)) * 100, 3)
+            self.write("Filtered imgs: {}| % Imgs saved: {}".format( self.num_filtered_images, ratio))
+    except Exception as e:  
+        self.write(str(e))
+
+def filterFace():
+    pass
+        
 if __name__ == '__main__':
     # Initialize parser
     parser = ArgumentParser(
@@ -167,7 +260,7 @@ if __name__ == '__main__':
                         help="Path of the folder where faces images will be saved\n")
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--keep-faces-imgs",
+    group.add_argument("--keep-faces",
                         action="store_true",
                         dest="keep_only_imgs_with_faces",
                         help = "Set the keeping criteria to images with faces. Whether to keep images stored from [-out, --output-path] to [-in, --input-path] only if contain faces")
@@ -213,7 +306,8 @@ if __name__ == '__main__':
     model = insightface.model_zoo.get_model('retinaface_r50_v1')
     model.prepare(ctx_id = -1, nms=0.4)
     
-    logging.info(" Loading classification model...")
-    maskNet = tf.keras.models.load_model(kwargs["classification_model"], compile=False)
+    if kwargs["keep_only_imgs_with_masked_faces"]:
+        logging.info(" Loading classification model...")
+        maskNet = tf.keras.models.load_model(kwargs["classification_model"], compile=False)
     
-    main(kwargs)    
+    main2(kwargs)    

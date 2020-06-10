@@ -7,10 +7,11 @@ setup(
     description = "Code written in order to make Nando to be a professional data refiner",
     packages = [],
       install_requires=[
+      "tensorflow",
       "insightface",
       "numpy",
       "opencv-python",
-      "tqdm"  
+      "p_tqdm"  
     ],
     
     zip_safe = False
