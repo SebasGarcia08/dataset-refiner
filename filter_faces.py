@@ -48,6 +48,9 @@ def run(paths):
         utils.write("ALREADY_EXISTS")
             
 def main(args):
+    model = insightface.model_zoo.get_model('retinaface_r50_v1')
+    model.prepare(ctx_id = -1, nms=0.4)
+    
     pathsGenerator = utils.yieldPaths(args["INPUT_BASE_DIR"], args["OUTPUT_PATH"], flat = FLAT)
     if not FLAT:
         utils.copyDirectoryStructure(args["INPUT_BASE_DIR"], args["OUTPUT_PATH"])
