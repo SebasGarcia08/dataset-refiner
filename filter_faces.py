@@ -29,7 +29,7 @@ def run(paths):
                             shutil.move(src, out)
                         else:
                             utils.copyFile(src, out)
-                    
+                        
                     for ith_face, box in enumerate(bbox): 
                         x,y,w,h,_ = list(map(int, box))
                         imgCrop = img[y:y+h,x:x+w]
